@@ -39,6 +39,7 @@ module Plots.Style
     -- * Plot Style
   , PlotStyle
   , HasPlotStyle (..)
+  , HasPlotStyle' (..)
 
   -- ** Applying Plot styles
   , applyLineStyle
@@ -80,6 +81,8 @@ import           Data.Typeable
 import           Diagrams.Prelude
 import           Linear
 
+import           Plots.Utils           (BackendType)
+
 -- | A plot style is made up of separate styles ('lineStyle',
 --   'markerStyle', 'areaStyle' and 'textStyle') a 'plotColour' and a
 --   'plotMarker'. When rendering a plot, the 'PlotStyle's in an
@@ -97,119 +100,127 @@ data PlotStyle b v n = PlotStyle
 
 type instance V (PlotStyle b v n) = v
 type instance N (PlotStyle b v n) = n
+type instance BackendType (PlotStyle b v n) = b
+
+makeClassy ''PlotStyle
+
+class (HasPlotStyle a (BackendType a) (V a) (N a)) => HasPlotStyle' a
 
 -- | Class for objects that contain a 'PlotStyle'.
-class HasPlotStyle f a b | a -> b where
-  -- | Lens onto the 'PlotStyle'.
-  plotStyle :: LensLike' f a (PlotStyle b (V a) (N a))
+-- class HasPlotStyle f a where
+--   -- | Lens onto the 'PlotStyle'.
+--   plotStyle :: LensLike' f a (PlotStyle (BackendType a) (V a) (N a))
 
-  -- | The 'plotColor' is the overall colour of the plot. This is passed
-  --   to the other styles ('lineStyle', 'markerStyle' etc.) to give an
-  --   overall colour for the plot.
-  plotColour :: Functor f => LensLike' f a (Colour Double)
-  plotColour = plotStyle . lens _plotColor (\p f -> p {_plotColor = f})
+--   -- | The 'plotColor' is the overall colour of the plot. This is passed
+--   --   to the other styles ('lineStyle', 'markerStyle' etc.) to give an
+--   --   overall colour for the plot.
+--   plotColour :: Functor f => LensLike' f a (Colour Double)
+--   plotColour = plotStyle . lens _plotColor (\p f -> p {_plotColor = f})
+plotColour :: HasPlotStyle' a => Lens' a (Colour Double)
+plotColour = plotColor
 
-  -- | Alias for 'plotColour'.
-  plotColor :: Functor f => LensLike' f a (Colour Double)
-  plotColor = plotStyle . lens _plotColor (\p f -> p {_plotColor = f})
+--   -- | Alias for 'plotColour'.
+--   plotColor :: Functor f => LensLike' f a (Colour Double)
+--   plotColor = plotStyle . lens _plotColor (\p f -> p {_plotColor = f})
 
-  -- | This style is applied to any plots made up of lines only (like
-  --   'Path' plots). This is a less general version of
-  --   'lineStyleFunction'.
-  lineStyle :: Settable f => LensLike' f a (Style (V a) (N a))
-  lineStyle = lineStyleFunction . mapped
+--   -- | This style is applied to any plots made up of lines only (like
+--   --   'Path' plots). This is a less general version of
+--   --   'lineStyleFunction'.
+--   lineStyle :: Settable f => LensLike' f a (Style (V a) (N a))
+--   lineStyle = lineStyleFunction . mapped
 
-  -- | A version 'lineStyle' with access to the current 'plotColour'
-  --   when 'applyLineStyle' is used.
-  lineStyleFunction :: Functor f => LensLike' f a (Colour Double ->
-    Style (V a) (N a))
-  lineStyleFunction = plotStyle . lens _lineStyle (\p f -> p {_lineStyle = f})
+--   -- | A version 'lineStyle' with access to the current 'plotColour'
+--   --   when 'applyLineStyle' is used.
+lineStyleFunction :: HasPlotStyle' a => Lens' a (Colour Double -> Style (V a) (N a))
+lineStyleFunction = plotStyle . lens _lineStyle (\p f -> p {_lineStyle = f})
 
-  -- | This style is applied to any markers in the plot (usually the
-  --   'plotMarker'). This is a less general version of
-  --   'markerStyleFunction'.
-  markerStyle :: Settable f => LensLike' f a (Style (V a) (N a))
-  markerStyle = markerStyleFunction . mapped
+--   -- | This style is applied to any markers in the plot (usually the
+--   --   'plotMarker'). This is a less general version of
+--   --   'markerStyleFunction'.
+--   markerStyle :: Settable f => LensLike' f a (Style (V a) (N a))
+--   markerStyle = markerStyleFunction . mapped
 
-  -- | A version 'lineStyle' with access to the current 'plotColour' when
-  --   'applyMarkerStyle' is used.
-  markerStyleFunction :: Functor f => LensLike' f a (Colour Double -> Style (V a) (N a))
-  markerStyleFunction = plotStyle . lens _markerStyle (\p f -> p {_markerStyle = f})
+--   -- | A version 'lineStyle' with access to the current 'plotColour' when
+--   --   'applyMarkerStyle' is used.
+markerStyleFunction :: HasPlotStyle' a => Lens' a (Colour Double -> Style (V a) (N a))
+markerStyleFunction = plotStyle . lens _markerStyle (\p f -> p {_markerStyle = f})
 
-  -- | This style is applied to any filled areas in a plot (like
-  --   'Plots.Types.Bar' or 'Plots.Styles.Ribbon'). This is a less
-  --   general version of 'areaStyleFunction'.
-  areaStyle :: Settable f => LensLike' f a (Style (V a) (N a))
-  areaStyle = areaStyleFunction . mapped
+--   -- | This style is applied to any filled areas in a plot (like
+--   --   'Plots.Types.Bar' or 'Plots.Styles.Ribbon'). This is a less
+--   --   general version of 'areaStyleFunction'.
+-- areaStyle :: Settable f => LensLike' f a (Style (V a) (N a))
+-- areaStyle = areaStyleFunction . mapped
 
-  -- | A version 'areaStyle' with access to the current 'plotColour' when
-  --   'applyAreaStyle' is used.
-  areaStyleFunction :: Functor f => LensLike' f a (Colour Double -> Style (V a) (N a))
-  areaStyleFunction = plotStyle . lens _areaStyle (\p f -> p {_areaStyle = f})
+--   -- | A version 'areaStyle' with access to the current 'plotColour' when
+--   --   'applyAreaStyle' is used.
+areaStyleFunction :: HasPlotStyle' a => Setter' a (Colour Double -> Style (V a) (N a))
+areaStyleFunction = plotStyle . lens _areaStyle (\p f -> p {_areaStyle = f})
 
-  -- | This style is applied to text plots. This is a less general
-  --   version of 'textStyleFunction'.
-  textStyle :: Settable f => LensLike' f a (Style (V a) (N a))
-  textStyle = textStyleFunction . mapped
+--   -- | This style is applied to text plots. This is a less general
+--   --   version of 'textStyleFunction'.
+-- textStyle :: Settable f => LensLike' f a (Style (V a) (N a))
+-- textStyle = textStyleFunction . mapped
 
-  -- | A version 'textStyle' with access to the current 'plotColour' when
-  --   'applyAreaStyle' is used.
-  textStyleFunction :: Functor f => LensLike' f a (Colour Double -> Style (V a) (N a))
-  textStyleFunction = plotStyle . lens _textStyle (\p f -> p {_textStyle = f})
+--   -- | A version 'textStyle' with access to the current 'plotColour' when
+--   --   'applyAreaStyle' is used.
+textStyleFunction :: HasPlotStyle' a => Lens' a (Colour Double -> Style (V a) (N a))
+textStyleFunction = plotStyle . lens _textStyle (\p f -> p {_textStyle = f})
 
-  -- | This diagram is used as any markers in a plot (like
-  --   'Plots.Types.Scatter'). The 'markerStyle' will be applied to this
-  --   marker when the plot gets rendered.
-  plotMarker :: Functor f => LensLike' f a (QDiagram b (V a) (N a) Any)
-  plotMarker = plotStyle . lens _plotMarker (\p f -> p {_plotMarker = f})
+--   -- | This diagram is used as any markers in a plot (like
+--   --   'Plots.Types.Scatter'). The 'markerStyle' will be applied to this
+--   --   marker when the plot gets rendered.
+--   plotMarker :: Functor f => LensLike' f a (QDiagram (BackendType a) (V a) (N a) Any)
+--   plotMarker = plotStyle . lens _plotMarker (\p f -> p {_plotMarker = f})
 
-  -- | A traversal over all the styles ('lineStyle', 'markerStyle',
-  --  'areaStyle' and 'textStyle') of a 'PlotStyle'. This is a less
-  --  general version of 'plotStyleFunctions'.
-  plotStyles :: Settable f => LensLike' f a (Style (V a) (N a))
-  plotStyles = plotStyleFunctions . mapped
+--   -- | A traversal over all the styles ('lineStyle', 'markerStyle',
+--   --  'areaStyle' and 'textStyle') of a 'PlotStyle'. This is a less
+--   --  general version of 'plotStyleFunctions'.
+plotStyles :: HasPlotStyle' a => Setter' a (Style (V a) (N a))
+plotStyles = plotStyleFunctions . mapped
 
-  -- | A version of 'plotStyles' with access to the 'plotColour'.
-  plotStyleFunctions :: Applicative f => LensLike' f a (Colour Double -> Style (V a) (N a))
-  plotStyleFunctions = plotStyle . t
-    where
-      t f PlotStyle {..} = PlotStyle
-        <$> pure _plotColor
-        <*> f _lineStyle
-        <*> f _markerStyle
-        <*> f _areaStyle
-        <*> f _textStyle
-        <*> pure _plotMarker
+--   -- | A version of 'plotStyles' with access to the 'plotColour'.
+plotStyleFunctions :: (HasPlotStyle' a, Applicative f) => LensLike' f a (Colour Double -> Style (V a) (N a))
+plotStyleFunctions = plotStyle . t
+  where
+    t f PlotStyle {..} = PlotStyle
+      <$> pure _plotColor
+      <*> f _lineStyle
+      <*> f _markerStyle
+      <*> f _areaStyle
+      <*> f _textStyle
+      <*> pure _plotMarker
 
-instance HasPlotStyle f (PlotStyle b v n) b where
-  plotStyle = id
+-- instance HasPlotStyle (PlotStyle b v n) b v n where
+--   plotStyle = id
+instance HasPlotStyle' (PlotStyle b v n) where
 
 -- Applying styles -----------------------------------------------------
 
 -- | Apply the 'lineStyle' from a 'PlotStyle'.
 applyLineStyle
-  :: (SameSpace a t, HasPlotStyle (Const (PlotStyle b (V a) (N a))) a b, HasStyle t)
+  -- :: (SameSpace a t, HasPlotStyle (Const (PlotStyle (BackendType a) (V a) (N a))) a, HasStyle t)
+  :: (SameSpace a t, HasPlotStyle' a, HasStyle t)
   => a -> t -> t
 applyLineStyle (view plotStyle -> sty) =
   applyStyle $ (sty ^. lineStyleFunction) (sty ^. plotColour)
 
 -- | Apply the 'markerStyle' from a 'PlotStyle'.
 applyMarkerStyle
-  :: (SameSpace a t, HasPlotStyle (Const (PlotStyle b (V a) (N a))) a b, HasStyle t)
+  :: (SameSpace a t, HasPlotStyle' a, HasStyle t)
   => a -> t -> t
 applyMarkerStyle (view plotStyle -> sty) =
   applyStyle $ (sty ^. markerStyleFunction) (sty ^. plotColour)
 
 -- | Apply the 'areaStyle from a 'PlotStyle'.
 applyAreaStyle
-  :: (SameSpace a t, HasPlotStyle (Const (PlotStyle b (V a) (N a))) a b, HasStyle t)
+  :: (SameSpace a t, HasPlotStyle' a, Settable (Const (Colour Double -> Style (V a) (N a))), HasStyle t)
   => a -> t -> t
 applyAreaStyle (view plotStyle -> sty) =
   applyStyle $ (sty ^. areaStyleFunction) (sty ^. plotColour)
 
 -- | Apply the 'textStyle' from a 'PlotStyle'.
 applyTextStyle
-  :: (SameSpace a t, HasPlotStyle (Const (PlotStyle b (V a) (N a))) a b, HasStyle t)
+  :: (SameSpace a t, HasPlotStyle' a, HasStyle t)
   => a -> t -> t
 applyTextStyle (view plotStyle -> sty) =
   applyStyle $ (sty ^. textStyleFunction) (sty ^. plotColour)
@@ -237,13 +248,17 @@ class HasAxisStyle a b | a -> b where
   --   render plots like 'Plots.HeatMap'.
   axisColourMap :: Lens' a ColourMap
   axisColourMap = axisStyle . cm
-    where cm f (AxisStyle c ss) = f c <&> \c' -> AxisStyle c' ss
+    where cm = lens
+            (\(AxisStyle c ss) -> c)
+            (\(AxisStyle c ss) c' -> AxisStyle c' ss)
 
   -- | Traversal over the 'PlotStyle's in an 'AxisStyle'. There are always
   --   an infinite number of 'PlotStyle's in an 'AxisStyle'.
   axisStyles :: IndexedTraversal' Int a (PlotStyle b (V a) (N a))
   axisStyles = axisStyle . stys . traversed
-    where stys f (AxisStyle c ss) = f ss <&> \ss' -> AxisStyle c ss'
+    where stys = lens
+            (\(AxisStyle c ss) -> ss)
+            (\(AxisStyle c ss) ss' -> AxisStyle c ss')
 
 instance HasAxisStyle (AxisStyle b v n) b where
   axisStyle = id

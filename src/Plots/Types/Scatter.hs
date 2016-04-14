@@ -160,8 +160,9 @@ instance HasConnectingLine f (ScatterOptions v n a) where
   connectingLine = lens oLine (\o b -> o {oLine = b})
 
 instance HasConnectingLine f (ScatterPlot v n) where
-  connectingLine f (ScatterPlot o@(ScatterOptions {..}))
-    = f oLine <&> \b -> ScatterPlot o {oLine = b}
+  connectingLine = lens
+    (\(ScatterPlot o@(ScatterOptions {..})) -> oLine)
+    (\(ScatterPlot o) b -> ScatterPlot o {oLine = b})
 
 instance HasConnectingLine f p => HasConnectingLine f (Plot p b) where
   connectingLine = rawPlot . connectingLine
